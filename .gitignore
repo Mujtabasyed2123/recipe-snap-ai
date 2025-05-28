@@ -21,3 +21,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # For a team working on the same Firebase project(s), it is recommended to leave
 # it commented so all members can deploy to the same project(s) in .firebaserc.
 # .firebaserc
+
+# Next.js build output
+.next
