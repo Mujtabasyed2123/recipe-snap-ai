@@ -1,0 +1,21 @@
+
+{
+  "fridgeExample": {
+    "url": "https://picsum.photos/seed/fridge123/600/400",
+    "width": 600,
+    "height": 400,
+    "hint": "fridge ingredients"
+  },
+  "vegetablesExample": {
+    "url": "https://picsum.photos/seed/veggies456/600/400",
+    "width": 600,
+    "height": 400,
+    "hint": "fresh vegetables"
+  },
+  "mysteryIngredient": {
+    "url": "https://picsum.photos/seed/mystery789/600/400",
+    "width": 600,
+    "height": 400,
+    "hint": "exotic fruit"
+  }
+}
