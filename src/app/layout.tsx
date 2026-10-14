@@ -15,8 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Recipe Snap',
-  description: 'Generate recipes from photos of your ingredients!',
+  title: 'All Blue Recipes',
+  description: 'Upload a photo of any dish and get a recipe cooked with the passion of the All Blue.',
+};
 };
 
 export default function RootLayout({
