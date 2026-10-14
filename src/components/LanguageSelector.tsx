@@ -15,7 +15,6 @@ interface Language {
   label: string;
 }
 
-// Expanded list of supported languages
 const supportedLanguages: Language[] = [
   { value: 'en', label: 'English' },
   { value: 'es', label: 'Español (Spanish)' },
@@ -28,13 +27,6 @@ const supportedLanguages: Language[] = [
   { value: 'zh-CN', label: '简体中文 (Simplified Chinese)' },
   { value: 'hi', label: 'हिन्दी (Hindi)' },
   { value: 'ar', label: 'العربية (Arabic)' },
-  { value: 'ru', label: 'Русский (Russian)' },
-  { value: 'bn', label: 'বাংলা (Bengali)' },
-  { value: 'ur', label: 'اردو (Urdu)' },
-  { value: 'sw', label: 'Kiswahili (Swahili)' },
-  { value: 'tr', label: 'Türkçe (Turkish)' },
-  { value: 'id', label: 'Bahasa Indonesia (Indonesian)'},
-  { value: 'nl', label: 'Nederlands (Dutch)'},
 ];
 
 interface LanguageSelectorProps {
@@ -50,18 +42,22 @@ export function LanguageSelector({
 }: LanguageSelectorProps) {
   return (
     <div className="flex items-center space-x-2">
-      <Languages className="h-5 w-5 text-muted-foreground" />
+      <Languages className="h-5 w-5 text-amber-400" />
       <Select
         value={selectedLanguage}
         onValueChange={onLanguageChange}
         disabled={disabled}
       >
-        <SelectTrigger className="w-[220px] sm:w-[200px] bg-card"> {/* Adjusted width slightly for longer language names */}
+        <SelectTrigger className="w-[220px] bg-slate-800 border-blue-700 text-blue-100 hover:bg-slate-700 focus:ring-amber-500">
           <SelectValue placeholder="Select language" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-slate-900 border-blue-800 text-blue-100">
           {supportedLanguages.map((lang) => (
-            <SelectItem key={lang.value} value={lang.value}>
+            <SelectItem 
+              key={lang.value} 
+              value={lang.value}
+              className="focus:bg-blue-900 focus:text-amber-300"
+            >
               {lang.label}
             </SelectItem>
           ))}
