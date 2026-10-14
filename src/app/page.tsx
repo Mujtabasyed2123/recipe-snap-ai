@@ -24,7 +24,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recipe, setRecipe] = useState<any>(null);
-  const [currentLanguage, setCurrentLanguage] = useState('English');
+  const [currentLanguage, setCurrentLanguage] = useState('en');
   const { toast } = useToast();
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
