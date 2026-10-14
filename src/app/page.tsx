@@ -1,16 +1,37 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { UploadCloud, Sparkles, ChefHat } from 'lucide-react';
+import { UploadCloud, Sparkles, ChefHat, Languages, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { identifyIngredients } from '@/ai/flows/identify-ingredients';
+
+const allLanguages = [
+  { value: 'en', label: 'English' },
+  { value: 'es', label: 'Español (Spanish)' },
+  { value: 'fr', label: 'Français (French)' },
+  { value: 'de', label: 'Deutsch (German)' },
+  { value: 'it', label: 'Italiano (Italian)' },
+  { value: 'pt', label: 'Português (Portuguese)' },
+  { value: 'ja', label: '日本語 (Japanese)' },
+  { value: 'ko', label: '한국어 (Korean)' },
+  { value: 'zh-CN', label: '简体中文 (Simplified Chinese)' },
+  { value: 'hi', label: 'हिन्दी (Hindi)' },
+  { value: 'ar', label: 'العربية (Arabic)' },
+  { value: 'ru', label: 'Русский (Russian)' },
+  { value: 'bn', label: 'বাংলা (Bengali)' },
+  { value: 'ur', label: 'اردو (Urdu)' },
+  { value: 'sw', label: 'Kiswahili (Swahili)' },
+  { value: 'tr', label: 'Türkçe (Turkish)' },
+  { value: 'id', label: 'Bahasa Indonesia (Indonesian)' },
+  { value: 'nl', label: 'Nederlands (Dutch)' },
+];
 
 export default function Home() {
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -19,7 +40,18 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [recipe, setRecipe] = useState<any>(null);
   const [currentLanguage, setCurrentLanguage] = useState('en');
+  const [langSearch, setLangSearch] = useState('');
+  const [showLangDropdown, setShowLangDropdown] = useState(false);
   const { toast } = useToast();
+
+  const filteredLanguages = useMemo(() => {
+    if (!langSearch.trim()) return allLanguages;
+    return allLanguages.filter((lang) =>
+      lang.label.toLowerCase().includes(langSearch.toLowerCase())
+    );
+  }, [langSearch]);
+
+  const selectedLangLabel = allLanguages.find((l) => l.value === currentLanguage)?.label || 'English';
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -35,7 +67,7 @@ export default function Home() {
     if (!imageFile) {
       toast({
         title: "No image selected",
-        description: "Please upload a photo of the dish first.",
+        description: "Please upload a photo of the dish first, my friend.",
         variant: "destructive",
       });
       return;
@@ -156,26 +188,58 @@ export default function Home() {
             </CardContent>
 
             <CardFooter className="flex flex-col sm:flex-row gap-4 justify-between items-center">
-  <div className="flex items-center gap-2">
-    <span className="text-amber-400 text-sm">Language:</span>
-    <select
-      value={currentLanguage}
-      onChange={(e) => setCurrentLanguage(e.target.value)}
-      className="h-10 px-3 rounded-md bg-slate-800 border border-blue-700 text-blue-100"
-    >
-      <option value="en">English</option>
-      <option value="es">Español</option>
-      <option value="fr">Français</option>
-      <option value="de">Deutsch</option>
-      <option value="ja">日本語</option>
-      <option value="ko">한국어</option>
-      <option value="zh-CN">中文</option>
-      <option value="hi">हिन्दी</option>
-      <option value="ar">العربية</option>
-    </select>
-  </div>
+              {/* Searchable Language Selector */}
+              <div className="relative w-full sm:w-64">
+                <div
+                  className="flex items-center gap-2 h-10 px-3 rounded-md bg-slate-800 border border-blue-700 cursor-pointer"
+                  onClick={() => setShowLangDropdown(!showLangDropdown)}
+                >
+                  <Languages className="h-4 w-4 text-amber-400" />
+                  <span className="text-blue-100 text-sm truncate flex-1">
+                    {selectedLangLabel}
+                  </span>
+                </div>
 
-  <Button
+                {showLangDropdown && (
+                  <div className="absolute bottom-12 left-0 w-full bg-slate-900 border border-blue-700 rounded-md shadow-xl z-50 overflow-hidden">
+                    <div className="p-2 border-b border-blue-800">
+                      <div className="flex items-center gap-2 bg-slate-800 rounded px-2">
+                        <Search className="h-4 w-4 text-blue-400" />
+                        <input
+                          type="text"
+                          placeholder="Search language..."
+                          value={langSearch}
+                          onChange={(e) => setLangSearch(e.target.value)}
+                          className="w-full bg-transparent text-blue-100 text-sm py-2 outline-none"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                      {filteredLanguages.map((lang) => (
+                        <div
+                          key={lang.value}
+                          className={`px-3 py-2 text-sm cursor-pointer hover:bg-blue-900 ${
+                            currentLanguage === lang.value ? 'bg-blue-900 text-amber-300' : 'text-blue-100'
+                          }`}
+                          onClick={() => {
+                            setCurrentLanguage(lang.value);
+                            setShowLangDropdown(false);
+                            setLangSearch('');
+                          }}
+                        >
+                          {lang.label}
+                        </div>
+                      ))}
+                      {filteredLanguages.length === 0 && (
+                        <div className="px-3 py-2 text-sm text-blue-400">No language found</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <Button
                 onClick={handleGenerateRecipe}
                 disabled={!imageFile || isLoading}
                 size="lg"
