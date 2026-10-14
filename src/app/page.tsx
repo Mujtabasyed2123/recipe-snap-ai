@@ -1,22 +1,17 @@
 'use client';
 
 import Image from 'next/image';
-import type * as React from 'react';
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AppHeader } from '@/components/layout/Header';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { UploadCloud, Sparkles, ChefHat } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-// Keep your existing AI imports (do not delete these)
 import { identifyIngredients } from '@/ai/flows/identify-ingredients';
-import { generateRecipe } from '@/ai/flows/generate-recipe'; // if this exists
 
 export default function Home() {
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -41,7 +36,7 @@ export default function Home() {
     if (!imageFile) {
       toast({
         title: "No image selected",
-        description: "Please upload a photo of the dish first, my friend.",
+        description: "Please upload a photo of the dish first.",
         variant: "destructive",
       });
       return;
@@ -51,17 +46,14 @@ export default function Home() {
     setError(null);
 
     try {
-      // Convert image to data URI
       const reader = new FileReader();
       const dataUri = await new Promise<string>((resolve) => {
         reader.onload = () => resolve(reader.result as string);
         reader.readAsDataURL(imageFile);
       });
 
-      // Call your existing AI (we will update the prompt later to sound like Sanji)
       const result = await identifyIngredients({ photoDataUri: dataUri });
-      
-      // For now we show a Sanji-style message
+
       setRecipe({
         title: "A Dish Worthy of the All Blue",
         content: result,
@@ -104,8 +96,6 @@ export default function Home() {
 
       <main className="container mx-auto px-4 py-10">
         <div className="max-w-2xl mx-auto">
-          
-          {/* Hero text */}
           <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-bold mb-3">
               Welcome to the <span className="text-amber-400">All Blue</span>
@@ -115,7 +105,6 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Upload Card */}
           <Card className="bg-slate-900/70 border-blue-800/60 shadow-2xl shadow-blue-900/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl text-amber-300">
@@ -176,7 +165,7 @@ export default function Home() {
                 onClick={handleGenerateRecipe}
                 disabled={!imageFile || isLoading}
                 size="lg"
-                className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-900 font-semibold shadow-lg shadow-amber-500/25"
+                className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-900 font-semibold"
               >
                 <Sparkles className="mr-2 h-5 w-5" />
                 Create the Recipe
@@ -184,7 +173,6 @@ export default function Home() {
             </CardFooter>
           </Card>
 
-          {/* Recipe Result */}
           {recipe && (
             <Card className="mt-8 bg-slate-900/70 border-amber-600/40">
               <CardHeader>
@@ -193,18 +181,15 @@ export default function Home() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="prose prose-invert max-w-none text-blue-100">
-                  <pre className="whitespace-pre-wrap font-sans text-base">
-                    {JSON.stringify(recipe.content, null, 2)}
-                  </pre>
-                </div>
+                <pre className="whitespace-pre-wrap text-blue-100 font-sans text-base">
+                  {JSON.stringify(recipe.content, null, 2)}
+                </pre>
               </CardContent>
             </Card>
           )}
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-blue-900/50 mt-16 py-6 text-center text-blue-300/60 text-sm">
         <p>All Blue Recipes • Cooked with passion by the Black Leg</p>
         <p className="mt-1 text-xs">“The sea is vast... and so is my love for fine cuisine.”</p>
