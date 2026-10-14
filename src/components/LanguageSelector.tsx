@@ -1,12 +1,5 @@
 'use client';
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Languages } from 'lucide-react';
 
 const supportedLanguages = [
@@ -37,29 +30,20 @@ export function LanguageSelector({
   return (
     <div className="flex items-center gap-2">
       <Languages className="h-5 w-5 text-amber-400" />
-      <Select
+      <select
         value={selectedLanguage}
-        onValueChange={onLanguageChange}
+        onChange={(e) => onLanguageChange(e.target.value)}
         disabled={disabled}
+        className="h-10 px-3 rounded-md bg-slate-800 border border-blue-700 text-blue-100 
+                   hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500
+                   disabled:opacity-50"
       >
-        <SelectTrigger 
-          className="w-[180px] h-10 bg-slate-800/80 border border-blue-700 text-blue-100 
-                     hover:bg-slate-700 focus:ring-2 focus:ring-amber-500 focus:ring-offset-0"
-        >
-          <SelectValue placeholder="Language" />
-        </SelectTrigger>
-        <SelectContent className="bg-slate-900 border border-blue-800 text-blue-100">
-          {supportedLanguages.map((lang) => (
-            <SelectItem 
-              key={lang.value} 
-              value={lang.value}
-              className="focus:bg-blue-800 focus:text-amber-300 cursor-pointer"
-            >
-              {lang.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        {supportedLanguages.map((lang) => (
+          <option key={lang.value} value={lang.value} className="bg-slate-900 text-blue-100">
+            {lang.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
