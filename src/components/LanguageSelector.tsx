@@ -1,6 +1,5 @@
 'use client';
 
-import type * as React from 'react';
 import {
   Select,
   SelectContent,
@@ -10,23 +9,18 @@ import {
 } from '@/components/ui/select';
 import { Languages } from 'lucide-react';
 
-interface Language {
-  value: string;
-  label: string;
-}
-
-const supportedLanguages: Language[] = [
+const supportedLanguages = [
   { value: 'en', label: 'English' },
-  { value: 'es', label: 'Español (Spanish)' },
-  { value: 'fr', label: 'Français (French)' },
-  { value: 'de', label: 'Deutsch (German)' },
-  { value: 'it', label: 'Italiano (Italian)' },
-  { value: 'pt', label: 'Português (Portuguese)' },
-  { value: 'ja', label: '日本語 (Japanese)' },
-  { value: 'ko', label: '한국어 (Korean)' },
-  { value: 'zh-CN', label: '简体中文 (Simplified Chinese)' },
-  { value: 'hi', label: 'हिन्दी (Hindi)' },
-  { value: 'ar', label: 'العربية (Arabic)' },
+  { value: 'es', label: 'Español' },
+  { value: 'fr', label: 'Français' },
+  { value: 'de', label: 'Deutsch' },
+  { value: 'it', label: 'Italiano' },
+  { value: 'pt', label: 'Português' },
+  { value: 'ja', label: '日本語' },
+  { value: 'ko', label: '한국어' },
+  { value: 'zh-CN', label: '中文' },
+  { value: 'hi', label: 'हिन्दी' },
+  { value: 'ar', label: 'العربية' },
 ];
 
 interface LanguageSelectorProps {
@@ -41,22 +35,25 @@ export function LanguageSelector({
   disabled = false,
 }: LanguageSelectorProps) {
   return (
-    <div className="flex items-center space-x-2">
+    <div className="flex items-center gap-2">
       <Languages className="h-5 w-5 text-amber-400" />
       <Select
         value={selectedLanguage}
         onValueChange={onLanguageChange}
         disabled={disabled}
       >
-        <SelectTrigger className="w-[220px] bg-slate-800 border-blue-700 text-blue-100 hover:bg-slate-700 focus:ring-amber-500">
-          <SelectValue placeholder="Select language" />
+        <SelectTrigger 
+          className="w-[180px] h-10 bg-slate-800/80 border border-blue-700 text-blue-100 
+                     hover:bg-slate-700 focus:ring-2 focus:ring-amber-500 focus:ring-offset-0"
+        >
+          <SelectValue placeholder="Language" />
         </SelectTrigger>
-        <SelectContent className="bg-slate-900 border-blue-800 text-blue-100">
+        <SelectContent className="bg-slate-900 border border-blue-800 text-blue-100">
           {supportedLanguages.map((lang) => (
             <SelectItem 
               key={lang.value} 
               value={lang.value}
-              className="focus:bg-blue-900 focus:text-amber-300"
+              className="focus:bg-blue-800 focus:text-amber-300 cursor-pointer"
             >
               {lang.label}
             </SelectItem>
