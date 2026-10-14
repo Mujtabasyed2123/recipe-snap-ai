@@ -230,7 +230,7 @@ export default function HomePage() {
          <LanguageSelector selectedLanguage={currentLanguage} onLanguageChange={setCurrentLanguage} disabled={isLoadingIngredients || isLoadingRecipe} />
         <Button onClick={handleIdentifyIngredients} disabled={!imageFile || isLoadingIngredients} size="lg" className="w-full sm:w-auto bg-accent hover:bg-accent/90">
           <Sparkles className="mr-2 h-5 w-5" />
-          Identify Ingredients
+         Get Recipe
         </Button>
       </CardFooter>
     </Card>
