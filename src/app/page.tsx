@@ -2,391 +2,212 @@
 
 import Image from 'next/image';
 import type * as React from 'react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Checkbox } from '@/components/ui/checkbox'; // Added Checkbox import
 import { AppHeader } from '@/components/layout/Header';
 import { LanguageSelector } from '@/components/LanguageSelector';
-import { IngredientChip } from '@/components/IngredientChip';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { SubstitutionModal } from '@/components/SubstitutionModal';
+import { UploadCloud, Sparkles, ChefHat } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { identifyIngredients, type IdentifyIngredientsOutput } from '@/ai/flows/identify-ingredients';
-import { generateRecipe, type GenerateRecipeInput, type GenerateRecipeOutput } from '@/ai/flows/generate-recipe'; // Updated import
-import { suggestSubstitutions, type SuggestSubstitutionsOutput } from '@/ai/flows/suggest-substitutions';
-import { validateRecipe, type ValidateRecipeOutput } from '@/ai/flows/validate-recipe';
-import { UploadCloud, Sparkles, ChefHat, UtensilsCrossed, Lightbulb, XCircle, RotateCcw, ShieldCheck, ShieldAlert, Salad } from 'lucide-react'; // Added Salad icon
 
-type AppStep = 'upload' | 'confirmIngredients' | 'displayRecipe';
+// Keep your existing AI imports (do not delete these)
+import { identifyIngredients } from '@/ai/flows/identify-ingredients';
+import { generateRecipe } from '@/ai/flows/generate-recipe'; // if this exists
 
-const commonDietaryRestrictions = [
-  "Vegetarian", 
-  "Vegan", 
-  "Gluten-Free", 
-  "Dairy-Free", 
-  "Nut-Free",
-  "Low-Carb"
-];
-
-export default function HomePage() {
-  const [currentStep, setCurrentStep] = useState<AppStep>('upload');
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+export default function Home() {
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [identifiedIngredients, setIdentifiedIngredients] = useState<string[]>([]);
-  const [customIngredient, setCustomIngredient] = useState<string>('');
-  const [recipe, setRecipe] = useState<GenerateRecipeOutput | null>(null);
-  const [isLoadingIngredients, setIsLoadingIngredients] = useState(false);
-  const [isLoadingRecipe, setIsLoadingRecipe] = useState(false);
-  const [isLoadingSubstitutions, setIsLoadingSubstitutions] = useState(false);
-  const [isValidatingRecipe, setIsValidatingRecipe] = useState(false);
-  const [validationResult, setValidationResult] = useState<ValidateRecipeOutput | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentLanguage, setCurrentLanguage] = useState<string>('en');
-  const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>([]); // New state for dietary restrictions
-  
-  const [showSubstitutionModal, setShowSubstitutionModal] = useState(false);
-  const [ingredientForSubstitution, setIngredientForSubstitution] = useState<string | null>(null);
-  const [substitutions, setSubstitutions] = useState<SuggestSubstitutionsOutput | null>(null);
-  const [substitutionError, setSubstitutionError] = useState<string | null>(null);
-
+  const [recipe, setRecipe] = useState<any>(null);
+  const [currentLanguage, setCurrentLanguage] = useState('English');
   const { toast } = useToast();
 
-  const fileToDataUri = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setError(null);
       setImageFile(file);
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
-      setCurrentStep('upload'); 
+      setImagePreview(URL.createObjectURL(file));
+      setRecipe(null);
+      setError(null);
     }
-  };
-
-  const handleIdentifyIngredients = async () => {
-    if (!imageFile) {
-      setError('Please select an image first.');
-      toast({ title: "No Image", description: "Please select an image first.", variant: "destructive" });
-      return;
-    }
-    setIsLoadingIngredients(true);
-    setError(null);
-    try {
-      const dataUri = await fileToDataUri(imageFile);
-      // Call the AI flow to identify ingredients.
-      // The prompt for this flow encourages it to be more detailed and look for common spices and components.
-      const result = await identifyIngredients({ photoDataUri: dataUri });
-      setIdentifiedIngredients(result.ingredients || []);
-      setCurrentStep('confirmIngredients');
-      toast({ title: "Ingredients Identified!", description: "Review the ingredients and add any missing ones." });
-    } catch (err) {
-      console.error('Error identifying ingredients:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to identify ingredients. Please try a different image or check your connection.';
-      setError(errorMessage);
-      toast({ title: "Identification Failed", description: errorMessage, variant: "destructive" });
-    } finally {
-      setIsLoadingIngredients(false);
-    }
-  };
-  
-  const handleAddCustomIngredient = () => {
-    if (customIngredient.trim() && !identifiedIngredients.includes(customIngredient.trim())) {
-      setIdentifiedIngredients([...identifiedIngredients, customIngredient.trim()]);
-      setCustomIngredient('');
-    }
-  };
-
-  const handleRemoveIngredient = (ingredientToRemove: string) => {
-    setIdentifiedIngredients(identifiedIngredients.filter(ing => ing !== ingredientToRemove));
-  };
-
-  const handleDietaryRestrictionChange = (restriction: string, checked: boolean) => {
-    setDietaryRestrictions(prev => 
-      checked ? [...prev, restriction] : prev.filter(r => r !== restriction)
-    );
   };
 
   const handleGenerateRecipe = async () => {
-    if (identifiedIngredients.length === 0) {
-      setError('Please add some ingredients first.');
-      toast({ title: "No Ingredients", description: "Add some ingredients to generate a recipe.", variant: "destructive" });
+    if (!imageFile) {
+      toast({
+        title: "No image selected",
+        description: "Please upload a photo of the dish first, my friend.",
+        variant: "destructive",
+      });
       return;
     }
-    setIsLoadingRecipe(true);
+
+    setIsLoading(true);
     setError(null);
-    setRecipe(null); 
-    setValidationResult(null);
 
     try {
-      const recipeInput: GenerateRecipeInput = { 
-        ingredients: identifiedIngredients, 
-        language: currentLanguage,
-        dietaryRestrictions: dietaryRestrictions, // Pass dietary restrictions
-      };
-      const generatedRecipe = await generateRecipe(recipeInput);
-      setRecipe(generatedRecipe);
-      setCurrentStep('displayRecipe');
-      toast({ title: "Recipe Generated!", description: `Enjoy your ${generatedRecipe.recipeName}!` });
+      // Convert image to data URI
+      const reader = new FileReader();
+      const dataUri = await new Promise<string>((resolve) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(imageFile);
+      });
 
-      setIsValidatingRecipe(true);
-      try {
-        const validation = await validateRecipe({
-          recipeName: generatedRecipe.recipeName,
-          ingredients: generatedRecipe.ingredients,
-          instructions: generatedRecipe.instructions,
-        });
-        setValidationResult(validation);
-        toast({
-          title: "Recipe Validated",
-          description: validation.isProper ? "The recipe looks good!" : "The recipe has some potential issues, check the feedback.",
-          variant: validation.isProper ? "default" : "destructive"
-        });
-      } catch (validationErr) {
-        console.error('Error validating recipe:', validationErr);
-        toast({ title: "Validation Failed", description: "Could not validate the recipe quality at this time.", variant: "destructive" });
-      } finally {
-        setIsValidatingRecipe(false);
-      }
+      // Call your existing AI (we will update the prompt later to sound like Sanji)
+      const result = await identifyIngredients({ photoDataUri: dataUri });
+      
+      // For now we show a Sanji-style message
+      setRecipe({
+        title: "A Dish Worthy of the All Blue",
+        content: result,
+      });
 
+      toast({
+        title: "Ah... magnificent!",
+        description: "I have prepared something special for you.",
+      });
     } catch (err) {
-      console.error('Error generating recipe:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to generate recipe. The AI might be busy, or the ingredients are too unusual. Try again or adjust ingredients.';
-      setError(errorMessage);
-      toast({ title: "Recipe Generation Failed", description: errorMessage, variant: "destructive" });
+      console.error(err);
+      setError("Even the greatest chefs face setbacks. Please try another photo.");
+      toast({
+        title: "Something went wrong",
+        description: "Please try a different image.",
+        variant: "destructive",
+      });
     } finally {
-      setIsLoadingRecipe(false);
+      setIsLoading(false);
     }
   };
-
-  const handleSuggestSubstitutions = async (ingredient: string) => {
-    if (!recipe) return;
-    setIngredientForSubstitution(ingredient);
-    setShowSubstitutionModal(true);
-    setIsLoadingSubstitutions(true);
-    setSubstitutions(null);
-    setSubstitutionError(null);
-    try {
-      const recipeContext = `Recipe: ${recipe.recipeName}\nInstructions: ${recipe.instructions}`;
-      const result = await suggestSubstitutions({ ingredient, recipeContext });
-      setSubstitutions(result);
-    } catch (err) {
-      console.error('Error suggesting substitutions:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to suggest substitutions.';
-      setSubstitutionError(errorMessage);
-      toast({ title: "Substitution Suggestion Failed", description: errorMessage, variant: "destructive" });
-    } finally {
-      setIsLoadingSubstitutions(false);
-    }
-  };
-
-  const resetApp = () => {
-    setCurrentStep('upload');
-    setImagePreview(null);
-    setImageFile(null);
-    setIdentifiedIngredients([]);
-    setRecipe(null);
-    setValidationResult(null);
-    setError(null);
-    setCustomIngredient('');
-    setDietaryRestrictions([]); // Reset dietary restrictions
-    if (document.getElementById('image-upload-input') as HTMLInputElement) {
-      (document.getElementById('image-upload-input') as HTMLInputElement).value = '';
-    }
-    toast({ title: "App Reset", description: "Ready for new ingredients!" });
-  };
-
-  const renderUploadStep = () => (
-    <Card className="w-full max-w-lg mx-auto shadow-xl">
-      <CardHeader>
-        <CardTitle className="text-2xl flex items-center"><UploadCloud className="mr-2 h-6 w-6 text-primary" /> Upload Dish Photo</CardTitle>
-        <CardDescription>Upload a photo of the dish or food you want to make. We'll generate a recipe for it!</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="image-upload-input" className="text-base font-medium">Choose Image File</Label>
-          <Input id="image-upload-input" type="file" accept="image/*" onChange={handleImageChange} className="text-base file:text-primary file:font-semibold file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-primary/10 hover:file:bg-primary/20" />
-        </div>
-        {imagePreview && (
-          <div className="mt-4 p-2 border border-dashed border-primary/50 rounded-lg bg-primary/5">
-            <Image src={imagePreview} alt="Selected ingredients" width={400} height={300} className="rounded-md object-contain max-h-[300px] w-auto mx-auto" data-ai-hint="food ingredients"/>
-          </div>
-        )}
-        {isLoadingIngredients && <LoadingSpinner text="Identifying ingredients..." className="my-4" />}
-      </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row justify-between items-center gap-4">
-         <LanguageSelector selectedLanguage={currentLanguage} onLanguageChange={setCurrentLanguage} disabled={isLoadingIngredients || isLoadingRecipe} />
-        <Button onClick={handleIdentifyIngredients} disabled={!imageFile || isLoadingIngredients} size="lg" className="w-full sm:w-auto bg-accent hover:bg-accent/90">
-          <Sparkles className="mr-2 h-5 w-5" />
-         Get Recipe
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-
-  const renderConfirmIngredientsStep = () => (
-    <Card className="w-full max-w-2xl mx-auto shadow-xl">
-      <CardHeader>
-        <CardTitle className="text-2xl flex items-center"><ChefHat className="mr-2 h-6 w-6 text-primary" /> Confirm Your Ingredients</CardTitle>
-        <CardDescription>Review the identified ingredients. Add or remove any as needed. You can also specify dietary restrictions.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {imagePreview && (
-           <div className="mt-4 p-2 border border-dashed border-primary/50 rounded-lg bg-primary/5">
-            <Image src={imagePreview} alt="Selected ingredients" width={200} height={150} className="rounded-md object-contain max-h-[150px] w-auto mx-auto" data-ai-hint="food items"/>
-          </div>
-        )}
-        <div>
-          <h3 className="text-lg font-semibold mb-2">Identified Ingredients:</h3>
-          {identifiedIngredients.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {identifiedIngredients.map(ing => (
-                <IngredientChip key={ing} ingredient={ing} onRemove={() => handleRemoveIngredient(ing)} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground">No ingredients identified yet, or you've removed them all. Add some below!</p>
-          )}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="custom-ingredient" className="text-base">Add Ingredient</Label>
-          <div className="flex space-x-2">
-            <Input 
-              id="custom-ingredient" 
-              value={customIngredient} 
-              onChange={(e) => setCustomIngredient(e.target.value)}
-              placeholder="e.g., tomatoes, chicken breast" 
-              className="text-base"
-              onKeyPress={(e) => e.key === 'Enter' && handleAddCustomIngredient()}
-            />
-            <Button onClick={handleAddCustomIngredient} variant="outline" className="text-base">Add</Button>
-          </div>
-        </div>
-
-        <div>
-          <h3 className="text-lg font-semibold mb-3 flex items-center">
-            <Salad className="mr-2 h-5 w-5 text-primary" />
-            Dietary Restrictions (Optional):
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
-            {commonDietaryRestrictions.map((restriction) => (
-              <div key={restriction} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`restriction-${restriction.toLowerCase().replace(/\s+/g, '-')}`}
-                  checked={dietaryRestrictions.includes(restriction)}
-                  onCheckedChange={(checked: boolean) => handleDietaryRestrictionChange(restriction, checked)}
-                  className="border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                />
-                <Label htmlFor={`restriction-${restriction.toLowerCase().replace(/\s+/g, '-')}`} className="font-normal text-base cursor-pointer">
-                  {restriction}
-                </Label>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {isLoadingRecipe && <LoadingSpinner text="Generating your recipe..." className="my-4" />}
-      </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row justify-between items-center gap-4">
-        <Button variant="outline" onClick={resetApp} disabled={isLoadingRecipe} className="w-full sm:w-auto">
-          <RotateCcw className="mr-2 h-4 w-4" /> Start Over
-        </Button>
-        <Button onClick={handleGenerateRecipe} disabled={identifiedIngredients.length === 0 || isLoadingRecipe} size="lg" className="w-full sm:w-auto bg-accent hover:bg-accent/90">
-          <Sparkles className="mr-2 h-5 w-5" />
-          Generate Recipe
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-
-  const renderDisplayRecipeStep = () => recipe && (
-    <Card className="w-full max-w-3xl mx-auto shadow-xl">
-      <CardHeader>
-        <CardTitle className="text-2xl sm:text-3xl font-bold text-center text-primary">{recipe.recipeName}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {isValidatingRecipe && <LoadingSpinner text="Validating recipe quality..." className="my-4" />}
-        {validationResult && (
-          <Alert variant={validationResult.isProper ? "default" : "destructive"} className="my-4">
-            {validationResult.isProper ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
-            <AlertTitle>{validationResult.isProper ? "Recipe Validation: Looks Good!" : "Recipe Validation: Potential Issues"}</AlertTitle>
-            {validationResult.feedback && <AlertDescription>{validationResult.feedback}</AlertDescription>}
-          </Alert>
-        )}
-        <div>
-          <h3 className="text-xl font-semibold mb-3 flex items-center"><UtensilsCrossed className="mr-2 h-5 w-5 text-accent" />Ingredients</h3>
-          <ul className="list-disc list-inside space-y-1 pl-2">
-            {recipe.ingredients.map((ing, index) => (
-              <li key={index} className="text-base">
-                <Button 
-                  variant="link" 
-                  className="p-0 h-auto text-base text-foreground hover:text-accent hover:underline"
-                  onClick={() => handleSuggestSubstitutions(ing)}
-                >
-                  {ing} <Lightbulb className="ml-1 h-4 w-4 text-primary/70 inline" />
-                </Button>
-              </li>
-            ))}
-          </ul>
-          <p className="text-xs text-muted-foreground mt-1">Click an ingredient to see substitution suggestions.</p>
-        </div>
-        <div>
-          <h3 className="text-xl font-semibold mb-3 flex items-center"><ChefHat className="mr-2 h-5 w-5 text-accent" />Instructions</h3>
-          <Textarea value={recipe.instructions} readOnly rows={10} className="text-base bg-background/50 whitespace-pre-wrap" />
-        </div>
-        {isLoadingRecipe && <LoadingSpinner text="Generating another recipe..." className="my-4" />}
-      </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row justify-between items-center gap-4">
-        <Button variant="outline" onClick={resetApp} disabled={isLoadingRecipe || isValidatingRecipe} className="w-full sm:w-auto">
-          <RotateCcw className="mr-2 h-4 w-4" /> Start Over
-        </Button>
-        <Button onClick={handleGenerateRecipe} disabled={isLoadingRecipe || isValidatingRecipe} size="lg" className="w-full sm:w-auto">
-          <Sparkles className="mr-2 h-5 w-5" />
-          Try a Different Recipe
-        </Button>
-      </CardFooter>
-    </Card>
-  );
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <AppHeader />
-      <main className="flex-grow container mx-auto px-4 py-8">
-        {error && (
-          <Alert variant="destructive" className="mb-6 max-w-2xl mx-auto">
-            <XCircle className="h-5 w-5" />
-            <AlertTitle>Oops! Something went wrong.</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-blue-950 to-slate-900 text-white">
+      {/* Header */}
+      <header className="border-b border-blue-800/50 bg-slate-950/80 backdrop-blur-md">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <ChefHat className="h-8 w-8 text-amber-400" />
+            <h1 className="text-2xl font-bold tracking-tight">
+              <span className="text-amber-400">All Blue</span>{" "}
+              <span className="text-blue-300">Recipes</span>
+            </h1>
+          </div>
+          <p className="text-sm text-blue-200/70 hidden sm:block">
+            Cooked with the passion of the sea
+          </p>
+        </div>
+      </header>
 
-        {currentStep === 'upload' && renderUploadStep()}
-        {currentStep === 'confirmIngredients' && renderConfirmIngredientsStep()}
-        {currentStep === 'displayRecipe' && renderDisplayRecipeStep()}
-        
-        <SubstitutionModal
-          isOpen={showSubstitutionModal}
-          onOpenChange={setShowSubstitutionModal}
-          ingredientName={ingredientForSubstitution}
-          substitutions={substitutions}
-          isLoading={isLoadingSubstitutions}
-          error={substitutionError}
-        />
+      <main className="container mx-auto px-4 py-10">
+        <div className="max-w-2xl mx-auto">
+          
+          {/* Hero text */}
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold mb-3">
+              Welcome to the <span className="text-amber-400">All Blue</span>
+            </h2>
+            <p className="text-blue-200/80 text-lg">
+              Upload a photo of any dish... and I shall recreate it with the soul of a true chef.
+            </p>
+          </div>
+
+          {/* Upload Card */}
+          <Card className="bg-slate-900/70 border-blue-800/60 shadow-2xl shadow-blue-900/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl text-amber-300">
+                <UploadCloud className="h-6 w-6" />
+                Present Your Dish
+              </CardTitle>
+              <CardDescription className="text-blue-200/70">
+                Show me a photo of the food you desire, and I will craft a recipe worthy of the All Blue itself.
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="image-upload" className="text-blue-100">
+                  Choose Image
+                </Label>
+                <Input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="bg-slate-800 border-blue-700 text-blue-100 file:bg-amber-500 file:text-slate-900 file:font-medium"
+                />
+              </div>
+
+              {imagePreview && (
+                <div className="relative rounded-xl overflow-hidden border-2 border-amber-500/40">
+                  <Image
+                    src={imagePreview}
+                    alt="Selected dish"
+                    width={600}
+                    height={400}
+                    className="w-full h-64 object-cover"
+                  />
+                </div>
+              )}
+
+              {isLoading && (
+                <div className="flex justify-center py-6">
+                  <LoadingSpinner text="The chef is working his magic..." />
+                </div>
+              )}
+
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTitle>Ah, a small setback...</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+
+            <CardFooter className="flex flex-col sm:flex-row gap-4 justify-between items-center">
+              <LanguageSelector
+                selectedLanguage={currentLanguage}
+                onLanguageChange={setCurrentLanguage}
+              />
+              <Button
+                onClick={handleGenerateRecipe}
+                disabled={!imageFile || isLoading}
+                size="lg"
+                className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-900 font-semibold shadow-lg shadow-amber-500/25"
+              >
+                <Sparkles className="mr-2 h-5 w-5" />
+                Create the Recipe
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* Recipe Result */}
+          {recipe && (
+            <Card className="mt-8 bg-slate-900/70 border-amber-600/40">
+              <CardHeader>
+                <CardTitle className="text-amber-300 text-2xl">
+                  {recipe.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-invert max-w-none text-blue-100">
+                  <pre className="whitespace-pre-wrap font-sans text-base">
+                    {JSON.stringify(recipe.content, null, 2)}
+                  </pre>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </main>
-      <footer className="text-center py-4 text-sm text-muted-foreground border-t border-border">
-        Recipe Snap &copy; {new Date().getFullYear()} - Your AI Kitchen Assistant
+
+      {/* Footer */}
+      <footer className="border-t border-blue-900/50 mt-16 py-6 text-center text-blue-300/60 text-sm">
+        <p>All Blue Recipes • Cooked with passion by the Black Leg</p>
+        <p className="mt-1 text-xs">“The sea is vast... and so is my love for fine cuisine.”</p>
       </footer>
     </div>
   );
