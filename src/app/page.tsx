@@ -212,7 +212,7 @@ export default function HomePage() {
     <Card className="w-full max-w-lg mx-auto shadow-xl">
       <CardHeader>
         <CardTitle className="text-2xl flex items-center"><UploadCloud className="mr-2 h-6 w-6 text-primary" /> Upload Dish Photo</CardTitle>
-        <CardDescription>Take a picture or upload an image of your ingredients. We'll try to identify them for you!</CardDescription>
+        <CardDescription>Upload a photo of the dish or food you want to make. We'll generate a recipe for it!</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
